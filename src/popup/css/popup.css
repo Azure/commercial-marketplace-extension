@@ -1,0 +1,113 @@
+
+/* our custom styles */
+html,
+body {
+    width: 700px;
+    height: 600px;
+    overflow: visible;
+    padding-top: 15px;
+
+}
+
+h2 {
+    font-size:x-large;
+    padding-bottom: 25px;
+    color: #3899c6;
+}
+
+h3 {
+    font-size: large;
+    color: #3899c6;
+}
+
+a.modal-link::before {
+    content: url('images/page.png');
+    display: inline-block;
+    margin-right: 5px; /* Adjust the spacing between the image and the text */
+}
+
+a.audio-link::before {
+    content: url('images/audio.png');
+    display: inline-block;
+    margin-right: 5px; /* Adjust the spacing between the image and the text */
+}
+
+a.video-link::before {
+    content: url('images/video.png');
+    display: inline-block;
+    margin-right: 5px; /* Adjust the spacing between the image and the text */
+}
+
+.btn .btn-primary {
+    background-color: #3899c6;
+    border-color: #3899c6;
+}
+
+.content-link {
+    text-decoration: none;
+    font-size:small;
+    padding: 5px;
+}
+
+
+.content-link:hover {
+    color: #3899c6;
+}
+
+.content-pane {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-control {
+    padding: 10px;
+}
+
+.title {
+    color: #3899c6;
+}
+
+.nav-link {
+    color: #3899c6;
+    font-size: small;
+}
+
+/** 
+ * tags by id 
+ */
+#mainContentDiv {
+    height: 100%;
+    width: 90%;
+}
+
+#navDiv {
+    float: left;
+    padding: 5px;
+    padding-right: 15px;
+    border-radius: 5px;
+    height: 100%;
+}
+
+#contentDivs {
+    height: 90%; 
+    padding-left: 10px;
+}
+
+#privateOfferIFrame {
+    height: 90%;
+    width: 475px;
+    flex-grow: 1;
+    border: none;
+}
+
+
+#pageContentDiv div {
+    padding: 10px;
+}
+
+/* overriding base Bootstrap styles */
+.list-group-item.active {
+    background-color: #3899c6;
+    border-color: #3899c6;
+}
