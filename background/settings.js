@@ -64,6 +64,7 @@ export function getOffers(callback) { // get products
  */
 export function getSettings(callback) {
 
+  
   // if the storage is empty, set all the features in storage to defaults
   isStorageEmpty((err, isEmpty) => {
     if (err) {

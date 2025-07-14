@@ -1,5 +1,9 @@
 import { getSettings, saveSetting } from "./settings.js";
 import { getAuthTokens } from "./authTokens.js";
+import { getPlanInfo,postPlanInfo } from "./plans.js";
+import { getOfferInfo,postOfferInfo,IsItOffer } from "./offers.js";
+
+let copyActionData;
 
 chrome.storage.onChanged.addListener((changes, area) => {
   console.log('storage changed:', changes.products, area);
@@ -50,8 +54,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       break;
     case 'getOfferData':
       chrome.storage.local.get('products', (products) => {
-        console.debug('products', products);
-        sendResponse({ success: true, data: products });
+       sendResponse({ success: true, data: products });
       });
       break;
     case 'clearOfferData':
@@ -94,7 +97,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case "showIcon":      
       chrome.action.enable(sender.tab.id); // Enable the action for the specific tab
       break;
- 
+
     default:
       console.warn('Unknown action:', request.action);
       sendResponse({ success: false, error: 'Unknown action' });
@@ -151,21 +154,153 @@ chrome.runtime.onInstalled.addListener(() => {
 // Listener for context menu item clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "copy") {
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      function: showDialog,
-      args: ["Copy clicked"]
-    });
+
+    if (!isValidateUrl(tab.url)) {
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: showDialog,
+        args: ["Copy functionality is only available on the Offer or Plan page."]});
+      return;
+    }
+    else
+    {
+
+      copyActionInfo(tab.url);
+    }
+
   } else if (info.menuItemId === "paste") {
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      function: showDialog,
-      args: ["Paste clicked"]
-    });
+
+     pasteActionInfo(tab.url);
+
   }
 });
 
+
 // Function to show a dialog box
-function showDialog(message) {
+async function showDialog(message) {
   alert(message);
+
+}
+
+// Function to copy the data
+async function copyActionInfo(url)
+{
+  
+  console.debug("Call Get Auth Tokens");
+  try {
+    const tokenData =  await getAuthTokens();
+    console.debug(tokenData.msGraphToken);
+      if(url.includes("plans"))
+      {
+        await copyPlanInfo(tokenData.msGraphToken,url);
+        console.debug(copyActionData);    
+      }
+      else
+      {
+        await copyOfferInfo(tokenData.msGraphToken,url);
+        console.debug(copyActionData);    
+      }
+
+  } catch (error) {
+    console.error('Failed to get  info:', error);
+    return error;
+  }
+};
+  
+
+
+// Function to get the plan data
+async function copyPlanInfo(token,url)
+{  
+  console.debug("Start Copy Plan Information");
+  try {
+    copyActionData= await getPlanInfo(token,url);
+  
+  } catch (error) {
+    console.error('Failed to get plan info:', error);
+    return error;
+  }
+};
+// Function to get the offer data
+async function copyOfferInfo(token,url)
+{
+  
+  console.debug("Start Copy Offer Information");
+  try {
+    
+    copyActionData = await getOfferInfo(token,url);
+    console.debug(copyActionData);    
+  } catch (error) {
+    console.error('Failed to get offer info:', error);
+    return error;
+  }
+  
+
+};
+
+
+// Function to paste the copied data
+async function pasteActionInfo(url)
+{
+  if(copyActionData==null)
+  {
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      function: showDialog,
+      args: ["No data to paste. Please copy the plan data first."]});
+    return;
+  }
+  else
+  {
+    if (await IsItOffer(copyActionData))
+    {
+      pasteOfferInfo(url,'','');
+    }
+    else
+    {
+      
+      pastePlanInfo(url);
+    }
+    return;
+  }
+ 
+}
+
+// Function to paste the plan data
+async function pastePlanInfo(url)
+{
+  console.debug("Paste Plan Info");
+    const tokenData =  await getAuthTokens();
+    console.debug(tokenData);
+    const msg= await postPlanInfo(url,copyActionData,tokenData.msGraphToken);
+    console.debug(msg);
+    return;
+  
+}
+
+// Function to paste the offer data
+async function pasteOfferInfo(url,offerName,offerId)
+{
+  console.debug("Paste Offer Info");
+    const tokenData =  await getAuthTokens();
+    const msg= await postOfferInfo(url,copyActionData,tokenData.msGraphToken,offerName,offerId);
+    console.debug(msg);
+    return;
+  
+}
+
+// validate if the URL is valid for plan listing  
+ function isValidateUrl(url) {
+  // Regular expression to check for the words "offers", "plans", and "listings"
+  var result=false;
+  var regex = /offers\/([0-9a-fA-F-]{36})\/overview*/;
+  var result= regex.test(url);
+  if(!result)
+  {
+    regex = /offers.*plans\/([0-9a-fA-F-]{36})\/*/;
+    // Test the URL against the regular expression
+    return regex.test(url);
+
+  }
+  return result;
 }
