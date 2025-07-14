@@ -9,7 +9,7 @@ const renderedObjects = [];  // store the rendered objects to be able to clear t
  *  sends the seller ID to the webhook for reporting of MBS.
  */
 function postToWebhook(sellerId) {
-  const webhookUrl = ''; // Replace with your actual webhook URL
+  const webhookUrl = 'WEBHOOK'; // Replace with your actual webhook URL
 
   // Make a POST request
   fetch(webhookUrl, {
@@ -67,7 +67,7 @@ function getSellerId() {
   const DOM_mathingLines = DOM_lines.find(line => line.includes("devCenterSellerAccountId"));
   const sellerId = DOM_mathingLines.split("'")[1];
   console.debug("🕵️‍♀️Seller ID: ", sellerId);
-  // postToWebhook(sellerId); // Uncomment this line to post the seller ID to the webhook
+  postToWebhook(sellerId);
 }
 
 /** 
@@ -77,6 +77,16 @@ let sleep = function (ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.message === "Hello from background.js!") {
+    console.log("Message received from background.js:", request.message);
+
+    // Send a response back if needed
+    sendResponse({ message: "Hello from content.js!" });
+    processPage();
+  }
+});
+
 /**
  * loads the main code once the browser page is ready
  */
@@ -84,6 +94,8 @@ $(document).ready(async function () {
   getSellerId();
   showBanner();
   processPage(); // render the content
+  // console.log(await getAuthTokens());
+  // send a message to the background script to end the loading
 });
 
 /**
