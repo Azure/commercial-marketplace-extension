@@ -1,0 +1,345 @@
+/* style.css */
+
+.ai-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: rgba(255, 0, 0, 0.5);
+  color: #fff;
+  padding: 5px;
+  font-weight: bold;
+}
+
+.video-container {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+
+  padding: 5px;
+  padding-left: 10px;
+  color: green;
+  border-radius: 5px;
+  font-size: 14px;
+  top: 0px;
+}
+
+.video-player {
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #000;
+}
+
+/* Hide default controls except for play/pause */
+video::-webkit-media-controls-enclosure {
+  overflow: hidden;
+}
+
+video::-webkit-media-controls-play-button {
+  display: block;
+}
+
+video::-webkit-media-controls-volume-slider,
+video::-webkit-media-controls-timeline,
+video::-webkit-media-controls-current-time-display,
+video::-webkit-media-controls-time-remaining-display,
+video::-webkit-media-controls-mute-button,
+video::-webkit-media-controls-fullscreen-button {
+  display: none;
+}
+
+audio { 
+  height: 30px; 
+}
+
+.audio-player {
+  padding-left: 10px;
+  border-radius: 5px;
+  position: relative;
+  vertical-align: middle;
+  display: none;
+}
+
+.audio-container:hover {
+  cursor: pointer;
+}
+
+.audio-icon {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 10px;
+}
+
+.play-button,
+.pause-button {
+  width: 30px;
+  height: 30px;
+  background-color: #000;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.play-button:after {
+  content: "▶";
+}
+
+.pause-button:after {
+  content: "❚❚";
+}
+
+.sticky-note {
+  width: 200px;
+  height: 200px;
+  background-color: #fdfd96;
+  /* Sticky note yellow */
+  padding: 15px;
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3);
+  /* Shadow for depth */
+  border: 1px solid #e6e600;
+  /* font-family: 'Comic Sans MS', cursive, sans-serif; */
+  /* font-family: 'Arial', sans-serif; */
+  font-size: 16px;
+  line-height: 1.4;
+  position: fixed;
+  bottom: 0;
+  left: 20px;
+  transform: rotate(-3deg);
+  /* Slight tilt for realism */
+  z-index: 1000;
+  /* Ensure it floats above other elements */
+  color: black;
+}
+
+.sticky-note:before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-bottom: 15px solid #fdfd96;
+  position: absolute;
+  top: -15px;
+  left: 50px;
+  transform: rotate(30deg);
+}
+
+.close-modal-icon {
+  cursor: pointer;
+  height: 15px;
+  width: 15px;
+  position: absolute;
+  top: 10px;
+}
+
+.modal-image {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 
+  .diagram-container img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 2px solid #ccc;
+  transition: opacity 0.3s ease;
+} */
+
+.diagram-div {
+  display: flex;
+  justify-content: center;
+  /* gap: 20px; */
+  width: 40px;
+  height: 50px;
+}
+
+.diagram-container {
+  width: 60%;
+  /* width: 800px; */
+  margin: 30px auto;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid #ddd;
+  text-align: center;
+  transition: transform 0.3s ease;
+  display: none;
+  /* Hidden by default */
+  position: fixed;
+  /* Fix position on the screen */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* Center the diagram */
+  z-index: 9999;
+  /* Ensure it floats above all other elements */
+}
+
+.diagram-title {
+  font-family: 'Arial', sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 10px;
+  color: #333;
+}
+
+.diagram-description {
+  font-family: 'Arial', sans-serif;
+  font-size: 14px;
+  margin-top: 5px;
+  color: #666;
+}
+
+.toggle-button {
+  display: inline-block;
+  align-items: right;
+  margin: 5px;
+  /* padding: 10px 20px; */
+  /* background-color: #007bff; */
+  color: white;
+  /* border-radius: 5px; */
+  cursor: pointer;
+  font-family: 'Arial', sans-serif;
+  font-size: 30px;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-x-button {
+  align-items: right;
+  margin: 5px;
+  color: white;
+  cursor: pointer;
+  font-family: 'Arial', sans-serif;
+  font-size: 30px;
+  transition: background-color 0.3s ease;
+  float: right;
+  right: 13x;
+}
+
+.toggle-button:hover {
+  background-color: #3f3f40;
+}
+
+/*.carousel-container {
+    position: relative;
+    width: 300px;
+    height: 200px;
+    overflow: hidden;
+}
+*/
+.carousel-item {
+  position: absolute;
+  /*display: flex;*/
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  /* Start hidden */
+  transition: opacity 1s ease-in-out;
+  z-index: 0;
+}
+
+.carousel-item.active {
+  opacity: 1;
+  /* Fade in the active item */
+  z-index: 1;
+  /* Bring the active item to the front */
+}
+
+
+.banner {
+  align-items: center;         /* Vertically center contents */
+  background-color: #505050;
+  border-radius: 10px;
+  border-width: 2px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+  display: flex;               /* Enables Flexbox for centering */
+  justify-content: center;     /* Horizontally center contents */
+  left: -30px;
+  padding-bottom: 10px;
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 5px;
+  position: fixed;
+  width: 100%;                /* Takes up the full width of the page */
+  z-index: 1000;
+  transform: translate(30px, -8px);
+  margin: 0px;
+}
+
+.banner-title {
+  /* font-family: 'Arial', sans-serif; */
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 10px;
+  color: white;
+  text-align: center;
+  justify-content: center; 
+}
+
+#banner-x-span {
+  right: 10px;
+  top: 10px;
+  padding-left: 3px;
+  padding-right: 3px;
+  position: absolute;
+}
+
+.banner-tote-bag {
+  width: 30px;
+  height: 30px;
+  padding: 0px;
+  margin-top: 5px;
+}
+
+.link-container {
+  padding-left:10px;
+}
+
+.svg-icon {
+  width: 25px;
+  height: 25px;
+  padding: 0px;
+  margin-top: 5px;
+  fill: #339AC7;
+  
+}
+
+.tool-tip-icon {
+  width: 30px;
+  height: 30px;
+  padding-left: 10px;
+}
+
+
+.modal-video-icon {
+  width: 35px;
+  height: 35px;
+}
+
+.audio-icon {
+  width: 35px;
+  height: 35px;
+  padding-left: 5px;
+}
+
+.tooltip {
+  background-color: #69afe5;
+  border-radius: 8px;
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3); /* Shadow */
+  color: black;
+  font-size: 14px;
+  font-weight: bold;
+  height:fit-content;
+  padding: 10px;
+  position: absolute; /* Position it absolutely */
+  visibility: hidden;
+  width: 200px;
+  z-index: 1000;   /* Ensure it's above other elements */
+}

@@ -1,0 +1,63 @@
+.bstreeview {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    position: relative;
+    font-size: smaller;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+    background-color: #fff;
+    background-clip: border-box;
+    border-radius: .25rem;
+    padding: 0;
+    overflow: hidden;
+}
+
+.bstreeview .list-group {
+    margin-bottom: 0;
+}
+
+.bstreeview .list-group-item {
+    border-radius: 0;
+    border-width: 1px 0 0 0;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    cursor: pointer;
+}
+
+.bstreeview .list-group-item:hover {
+    background-color:#dee2e6;
+}
+
+.bstreeview > .list-group-item:first-child {
+    border-top-width: 0;
+}
+
+.bstreeview .state-icon {
+    margin-left: 8px;
+    width: 12px;
+    text-align: center;
+}
+.bstreeview .item-icon {
+    margin-right: 5px;
+}
+.list-group-item svg {
+ margin-right: 8px;
+}
+
+.bstreeview svg { 
+    fill:#3899c6;
+}
+.refresh-button {
+    position: relative;
+    border-radius: 50%;
+    margin-left: 5px;
+    cursor: pointer;
+}
+.refresh-button svg {
+    position: relative;
+    top: -2px;
+    fill:green;
+}
