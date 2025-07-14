@@ -67,7 +67,7 @@ function getSellerId() {
   const DOM_mathingLines = DOM_lines.find(line => line.includes("devCenterSellerAccountId"));
   const sellerId = DOM_mathingLines.split("'")[1];
   console.debug("🕵️‍♀️Seller ID: ", sellerId);
-  // postToWebhook(sellerId);  Removed to avoid sending data to the webhook
+  // postToWebhook(sellerId); // Uncomment this line to post the seller ID to the webhook
 }
 
 /** 
