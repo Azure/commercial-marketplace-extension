@@ -202,7 +202,7 @@ export async function getOfferInfo(token,url){
           if(element.hasOwnProperty("leadDestination"))
           {
               element["leadDestination"] = 'none'; // set to none to avoid carrying the leads info to the other publisher.
-              element["marketoLeadConfiguration"]
+              delete element["marketoLeadConfiguration"]
           }
 
           // patch code for now for API changes
