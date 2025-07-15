@@ -46,6 +46,7 @@
       ],
       "js": [
         "lib/jquery-3.7.1.min.js",
+        "content/toast.js",
         "content/banner.js",
         "content/features.js",
         "content/content.js",

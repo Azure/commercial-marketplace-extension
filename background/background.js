@@ -156,21 +156,17 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "copy") {
 
     if (!isValidateUrl(tab.url)) {
-      chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        function: showDialog,
-        args: ["Copy functionality is only available on the Offer or Plan page."]});
+      showToast("Copy functionality is only available on the Offer or Plan page.", "warning");
       return;
     }
     else
     {
-
       copyActionInfo(tab.url);
     }
 
   } else if (info.menuItemId === "paste") {
 
-     pasteActionInfo(tab.url);
+     pasteActionInfo(tab.url, tab);
 
   }
 });
@@ -179,7 +175,26 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 // Function to show a dialog box
 async function showDialog(message) {
   alert(message);
+}
 
+// Function to show a toast notification
+async function showToast(message, type = 'success', duration = 3000) {
+  // Escape the message to prevent issues with quotes
+  const escapedMessage = message.replace(/'/g, "\\'").replace(/"/g, '\\"');
+  
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+      chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id },
+        func: (msg, toastType, dur) => {
+          if (typeof window.showMarketplaceToast === 'function') {
+            window.showMarketplaceToast(msg, toastType, dur);
+          }
+        },
+        args: [escapedMessage, type, duration]
+      });
+    }
+  });
 }
 
 // Function to copy the data
@@ -188,21 +203,27 @@ async function copyActionInfo(url)
   
   console.debug("Call Get Auth Tokens");
   try {
+    // Show loading notification
+    showToast("Copying information...", "info", 10000);
+    
     const tokenData =  await getAuthTokens();
     console.debug(tokenData.msGraphToken);
       if(url.includes("plans"))
       {
         await copyPlanInfo(tokenData.msGraphToken,url);
-        console.debug(copyActionData);    
+        console.debug(copyActionData);
+        showToast("Plan information copied successfully!", "success");
       }
       else
       {
         await copyOfferInfo(tokenData.msGraphToken,url);
-        console.debug(copyActionData);    
+        console.debug(copyActionData);
+        showToast("Offer information copied successfully!", "success");
       }
 
   } catch (error) {
     console.error('Failed to get  info:', error);
+    showToast("Failed to copy information. Please try again.", "error");
     return error;
   }
 };
@@ -240,26 +261,32 @@ async function copyOfferInfo(token,url)
 
 
 // Function to paste the copied data
-async function pasteActionInfo(url)
+async function pasteActionInfo(url, tab)
 {
   if(copyActionData==null)
   {
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      function: showDialog,
-      args: ["No data to paste. Please copy the plan data first."]});
+    showToast("No data to paste. Please copy the plan data first.", "warning");
     return;
   }
   else
   {
-    if (await IsItOffer(copyActionData))
-    {
-      pasteOfferInfo(url,'','');
-    }
-    else
-    {
+    try {
+      // Show loading notification
+      showToast("Pasting information...", "info", 10000);
       
-      pastePlanInfo(url);
+      if (await IsItOffer(copyActionData))
+      {
+        await pasteOfferInfo(url,'','');
+        showToast("Offer information pasted successfully!", "success");
+      }
+      else
+      {
+        await pastePlanInfo(url);
+        showToast("Plan information pasted successfully!", "success");
+      }
+    } catch (error) {
+      console.error('Failed to paste info:', error);
+      showToast("Failed to paste information. Please try again.", "error");
     }
     return;
   }
