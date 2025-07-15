@@ -141,7 +141,7 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "Copy",
     contexts: ["all"]
   });
-
+  
   // Child item: Paste
   chrome.contextMenus.create({
     id: "paste",
@@ -151,8 +151,19 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+// Child item: Export
+chrome.contextMenus.create({
+  id: "export",
+  parentId: "marketplace",
+  title: "Export",
+  contexts: ["all"]
+});
+
 // Listener for context menu item clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
+  console.debug("Context menu clicked:", info.menuItemId);
+  console.debug("Current tab URL:", tab.url);
+  
   if (info.menuItemId === "copy") {
 
     if (!isValidateUrl(tab.url)) {
@@ -162,6 +173,20 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     else
     {
       copyActionInfo(tab.url);
+    }
+
+  } else if (info.menuItemId === "export") {
+    console.debug("Export menu item clicked");
+    
+    if (!isValidateUrl(tab.url)) {
+      console.debug("URL validation failed for export");
+      showToast("Export functionality is only available on the Offer or Plan page.", "warning");
+      return;
+    }
+    else
+    {
+      console.debug("URL validation passed, calling exportActionInfo");
+      exportActionInfo(tab.url);
     }
 
   } else if (info.menuItemId === "paste") {
@@ -314,6 +339,107 @@ async function pasteOfferInfo(url,offerName,offerId)
     console.debug(msg);
     return;
   
+}
+
+// Function to export the data as a downloadable JSON file
+async function exportActionInfo(url) {
+  console.debug("Call Export Action Info");
+  console.debug("Export URL:", url);
+  
+  try {
+    // Show loading notification
+    showToast("Exporting information...", "info", 10000);
+    
+    console.debug("Getting auth tokens...");
+    const tokenData = await getAuthTokens();
+    console.debug("Auth tokens received:", tokenData.msGraphToken ? "✓" : "✗");
+    
+    let exportData;
+    if (url.includes("plans")) {
+      console.debug("Exporting plan data...");
+      exportData = await getPlanInfo(tokenData.msGraphToken, url);
+      console.debug("Plan data received:", exportData ? "✓" : "✗");
+      downloadJson(exportData, "plan_export.json");
+      showToast("Plan information exported successfully!", "success");
+    } else {
+      console.debug("Exporting offer data...");
+      exportData = await getOfferInfo(tokenData.msGraphToken, url);
+      console.debug("Offer data received:", exportData ? "✓" : "✗");
+      downloadJson(exportData, "offer_export.json");
+      showToast("Offer information exported successfully!", "success");
+    }
+
+  } catch (error) {
+    console.error('Failed to export info:', error);
+    console.error('Error stack:', error.stack);
+    showToast("Failed to export information. Please try again.", "error");
+    return error;
+  }
+}
+
+// Helper function to download JSON data as a file
+function downloadJson(data, filename) {
+  console.debug("downloadJson called with filename:", filename);
+  
+  if (!data) {
+    console.error("No data provided for download");
+    showToast("No data to export", "error");
+    return;
+  }
+  
+  try {
+    // Convert data to JSON string
+    const jsonString = JSON.stringify(data, null, 2);
+    console.debug("JSON string created, length:", jsonString.length);
+    
+    // Inject script to handle blob creation and download in content script context
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        console.debug("Injecting download script into tab:", tabs[0].id);
+        chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          func: (jsonData, fileName) => {
+            console.log("Download script executing with filename:", fileName);
+            try {
+              // Create a blob with the JSON data (this works in content script context)
+              const blob = new Blob([jsonData], { type: 'application/json' });
+              
+              // Create a download URL
+              const blobUrl = URL.createObjectURL(blob);
+              console.log("Blob URL created:", blobUrl);
+              
+              // Create a temporary anchor element and trigger download
+              const a = document.createElement('a');
+              a.href = blobUrl;
+              a.download = fileName;
+              a.style.display = 'none';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              
+              // Clean up the object URL
+              setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+              console.log("Download triggered successfully");
+            } catch (err) {
+              console.error("Error in download script:", err);
+            }
+          },
+          args: [jsonString, filename]
+        }).then(() => {
+          console.debug("Script injection successful");
+        }).catch((err) => {
+          console.error("Script injection failed:", err);
+          showToast("Failed to trigger download", "error");
+        });
+      } else {
+        console.error("No active tab found");
+        showToast("No active tab found", "error");
+      }
+    });
+  } catch (error) {
+    console.error("Error in downloadJson:", error);
+    showToast("Error creating download file", "error");
+  }
 }
 
 // validate if the URL is valid for plan listing  
