@@ -153,80 +153,114 @@ export async function makePostAPICallWithBody(token, url, bodyData) {
 
 
 // get offer info
-export async function getOfferInfo(token,url){
-    var offerId= extractOfferGuidFromUrl(url);
-    var configUrl='https://graph.microsoft.com/rp/product-ingestion/resource-tree/product/'+offerId+'?$version=2022-03-01-preview5&targetType=live'
-    var configUrl2='https://graph.microsoft.com/rp/product-ingestion/resource-tree/product/'+offerId+'?$version=2022-03-01-preview5&targetType=preview'
-    var OfferData = await makeAPICall(token,configUrl,configUrl2);
-    // Schema needs alot of cleaning
-    // Update Schema to configuration schema to
-    OfferData["$schema"]="https://schema.mp.microsoft.com/schema/configure/2022-03-01-preview2"
-    // remove unwanted fields
-    delete OfferData.root;
-    delete OfferData.target;
-
-
-    // Need to collect all type of resources from IDs and add Resource Name
-    for (let i = 0; i < OfferData.resources.length; i++) {
-        var element = OfferData.resources[i];
-        //console.debug(element);
-        element["resourceName"]= await hashStringToGUID(element.id);
-       
-        delete element.id;
+export async function getOfferInfo(token, url) {
+    const offerId = extractOfferGuidFromUrl(url);
+    if (!offerId) {
+        throw new Error('Invalid offer URL - could not extract offer ID');
     }
-    // Update Collect dependencies to use resourceName
-    var submissionId=0;
-    for (let i = 0; i < OfferData.resources.length; i++) {
-            var element = OfferData.resources[i];
-            //console.debug(element);
-            if(element.hasOwnProperty("product"))
-            {
-                element["product"]={"resourceName":await hashStringToGUID(element.product)};
+    
+    const configUrl = `https://graph.microsoft.com/rp/product-ingestion/resource-tree/product/${offerId}?$version=2022-03-01-preview5&targetType=live`;
+    const configUrl2 = `https://graph.microsoft.com/rp/product-ingestion/resource-tree/product/${offerId}?$version=2022-03-01-preview5&targetType=preview`;
+    
+    const offerData = await makeAPICall(token, configUrl, configUrl2);
+    
+    if (!offerData || !Array.isArray(offerData.resources)) {
+        throw new Error('Invalid offer data received from API');
+    }
+    
+    // Update schema and clean unwanted fields
+    offerData["$schema"] = "https://schema.mp.microsoft.com/schema/configure/2022-03-01-preview2";
+    delete offerData.root;
+    delete offerData.target;
+
+    // First pass: Generate all resourceNames in parallel
+    const resourceNamePromises = offerData.resources.map(async (element) => {
+        if (element.id) {
+            return { 
+                element, 
+                resourceName: await hashStringToGUID(element.id) 
+            };
+        }
+        return { element, resourceName: null };
+    });
+    
+    // Wait for all hashing to complete
+    const resourceResults = await Promise.all(resourceNamePromises);
+    
+    // Apply the resourceNames to elements
+    for (const { element, resourceName } of resourceResults) {
+        if (resourceName) {
+            element.resourceName = resourceName;
+            delete element.id;
+        }
+    }
+
+    // Second pass: Process all references in parallel
+    let submissionIndex = -1;
+    const dependencyPromises = offerData.resources.map(async (element, index) => {
+        const updates = {};
+        
+        // Process each reference type
+        if (element.product) {
+            updates.product = { resourceName: await hashStringToGUID(element.product) };
+        }
+        
+        if (element.listing) {
+            updates.listing = { resourceName: await hashStringToGUID(element.listing) };
+        }
+        
+        if (element.plan) {
+            updates.plan = { resourceName: await hashStringToGUID(element.plan) };
+        }
+        
+        if (element.meterDefine) {
+            updates.meterDefine = { resourceName: await hashStringToGUID(element.meterDefine) };
+        }
+        
+        if (element.leadDestination) {
+            updates.leadDestination = 'none';
+            updates.deleteMarketoConfig = true;
+        }
+        
+        // Handle schema updates
+        if (element.$schema) {
+            if (element.$schema.includes("product-ingestion.azureedge.net")) {
+                updates.schema = element.$schema
+                    .replace("https://product-ingestion.azureedge.net/schema/", "https://schema.mp.microsoft.com/schema/")
+                    .replace("-preview3", "-preview5");
             }
-
-            if(element.hasOwnProperty("listing"))
-            {
-              element["listing"]={"resourceName":await hashStringToGUID(element.listing)};
-          }
-
-          if(element.hasOwnProperty("plan"))
-          {
-            element["plan"]={"resourceName":await hashStringToGUID(element.plan)};
-          }
-          
-          if(element.hasOwnProperty("meterDefine"))
-          {
-              element["meterDefine"]={"resourceName":await hashStringToGUID(element.meterDefine)};
-          }
-
-          if(element.hasOwnProperty("leadDestination"))
-          {
-              element["leadDestination"] = 'none'; // set to none to avoid carrying the leads info to the other publisher.
-              delete element["marketoLeadConfiguration"]
-          }
-
-          // patch code for now for API changes
-          if(element.hasOwnProperty("$schema"))
-          {
-            if(element["$schema"].includes("product-ingestion.azureedge.net"))
-            {
-              element["$schema"]=element["$schema"].replace("https://product-ingestion.azureedge.net/schema/","https://schema.mp.microsoft.com/schema/").replace("-preview3","-preview5");
+            
+            if (element.$schema.includes("https://schema.mp.microsoft.com/schema/submission/2022-03-01-preview2")) {
+                updates.isSubmission = true;
+                submissionIndex = index;
             }
-
-            if(element["$schema"].includes("https://schema.mp.microsoft.com/schema/submission/2022-03-01-preview2"))
-            {
-              submissionId=i;
-            }
-          }
-       }
-
-    OfferData.resources.splice(submissionId,1);      
-    console.debug(OfferData);
-
-    return OfferData;
-
-  }
-
+        }
+        
+        return { element, updates, index };
+    });
+    
+    // Wait for all processing to complete
+    const updateResults = await Promise.all(dependencyPromises);
+    
+    // Apply all updates
+    for (const { element, updates } of updateResults) {
+        if (updates.product) element.product = updates.product;
+        if (updates.listing) element.listing = updates.listing;
+        if (updates.plan) element.plan = updates.plan;
+        if (updates.meterDefine) element.meterDefine = updates.meterDefine;
+        if (updates.leadDestination) element.leadDestination = updates.leadDestination;
+        if (updates.deleteMarketoConfig) delete element.marketoLeadConfiguration;
+        if (updates.schema) element.$schema = updates.schema;
+    }
+    
+    // Remove submission resource if found
+    if (submissionIndex >= 0) {
+        offerData.resources.splice(submissionIndex, 1);
+    }
+    
+    console.debug(offerData);
+    return offerData;
+}
   // post offer info
   export async function postOfferInfo(url,offerData,token,offerName,offerId){
     // check if you get offerName
@@ -266,4 +300,3 @@ export async function getOfferInfo(token,url){
     return "Offer Submitted";
 
   }
-  
