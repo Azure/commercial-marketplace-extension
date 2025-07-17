@@ -141,7 +141,7 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "Copy",
     contexts: ["all"]
   });
-  
+
   // Child item: Paste
   chrome.contextMenus.create({
     id: "paste",
@@ -149,14 +149,23 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "Paste",
     contexts: ["all"]
   });
-});
 
-// Child item: Export
-chrome.contextMenus.create({
-  id: "export",
-  parentId: "marketplace",
-  title: "Export",
-  contexts: ["all"]
+  // Child item: Import
+  chrome.contextMenus.create({
+    id: "import",
+    parentId: "marketplace",
+    title: "Import",
+    contexts: ["all"]
+  });
+
+  // Child item: Export
+  chrome.contextMenus.create({
+    id: "export",
+    parentId: "marketplace",
+    title: "Export",
+    contexts: ["all"]
+  });
+  
 });
 
 // Listener for context menu item clicks
@@ -189,9 +198,15 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       exportActionInfo(tab.url);
     }
 
-  } else if (info.menuItemId === "paste") {
+  } else if (info.menuItemId === "import") { // Call the import function directly
+
+      importActionInfo(tab.url); 
+      console.debug("Import menu item clicked");
+
+  } else if (info.menuItemId === "paste") {  // Call the paste function directly
 
      pasteActionInfo(tab.url, tab);
+      console.debug("Paste menu item clicked");
 
   }
 });
@@ -456,4 +471,108 @@ function downloadJson(data, filename) {
 
   }
   return result;
+}
+
+// Function to import offer/plan data from a JSON file
+async function importActionInfo(url) {
+  console.debug("Call Import Action Info");
+  console.debug("Import URL:", url);
+  
+  try {
+    // Show loading notification
+    showToast("Opening file selector...", "info", 5000);
+    
+    // Inject script to handle file selection and parsing in content script context
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        console.debug("Injecting file selection script into tab:", tabs[0].id);
+        chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          func: () => {
+            return new Promise((resolve, reject) => {
+              try {
+                // Create a hidden file input element
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.json';
+                fileInput.style.display = 'none';
+                
+                fileInput.onchange = (event) => {
+                  const file = event.target.files[0];
+                  if (!file) {
+                    reject('No file selected');
+                    return;
+                  }
+                  
+                  const reader = new FileReader();
+                  reader.onload = (e) => {
+                    try {
+                      const jsonData = JSON.parse(e.target.result);
+                      resolve(jsonData);
+                    } catch (parseError) {
+                      reject('Invalid JSON file: ' + parseError.message);
+                    }
+                  };
+                  
+                  reader.onerror = () => {
+                    reject('Error reading file');
+                  };
+                  
+                  reader.readAsText(file);
+                };
+                
+                fileInput.oncancel = () => {
+                  reject('File selection cancelled');
+                };
+                
+                // Append to body, click, and remove
+                document.body.appendChild(fileInput);
+                fileInput.click();
+                document.body.removeChild(fileInput);
+              } catch (err) {
+                reject('Error creating file selector: ' + err.message);
+              }
+            });
+          }
+        }).then(async (result) => {
+          if (result && result[0] && result[0].result) {
+            console.debug("File selected and parsed successfully");
+            const importedData = result[0].result;
+            
+            // Validate the imported data structure
+            if (!importedData || !importedData.resources) {
+              showToast("Invalid import data structure. Expected an object with 'resources' property.", "error");
+              return;
+            }
+            
+            try {
+              // Set the imported data to copyActionData and use the existing paste functionality
+              copyActionData = importedData;
+              console.debug("Imported data set to copyActionData, calling pasteActionInfo");
+              
+              // Use the existing paste functionality - this ensures 100% consistency
+              await pasteActionInfo(url, { url: url });
+              
+            } catch (error) {
+              console.error('Failed to import info:', error);
+              showToast("Failed to import information. Please try again.", "error");
+            }
+          }
+        }).catch((err) => {
+          console.error("File selection failed:", err);
+          if (err !== 'File selection cancelled') {
+            showToast("File selection failed: " + err, "error");
+          }
+        });
+      } else {
+        console.error("No active tab found");
+        showToast("No active tab found", "error");
+      }
+    });
+  } catch (error) {
+    console.error('Failed to import info:', error);
+    console.error('Error stack:', error.stack);
+    showToast("Failed to import information. Please try again.", "error");
+    return error;
+  }
 }
