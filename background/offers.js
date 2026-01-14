@@ -199,6 +199,12 @@ export async function getOfferInfo(token,url){
               element["meterDefine"]={"resourceName":await hashStringToGUID(element.meterDefine)};
           }
 
+          if(element.hasOwnProperty("leadDestination"))
+          {
+              element["leadDestination"] = 'none'; // set to none to avoid carrying the leads info to the other publisher.
+              delete element["marketoLeadConfiguration"]
+          }
+
           // patch code for now for API changes
           if(element.hasOwnProperty("$schema"))
           {
